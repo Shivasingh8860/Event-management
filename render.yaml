@@ -6,9 +6,7 @@ services:
     startCommand: gunicorn app:app
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: events-db
-          property: connectionString
+        sync: false # Setting this to false will prompt you to enter the Neon URL during setup
       - key: SECRET_KEY
         generateValue: true
       - key: MAIL_SERVER
@@ -17,7 +15,3 @@ services:
         value: 587
       - key: MAIL_USE_TLS
         value: True
-
-databases:
-  - name: events-db
-    plan: free
