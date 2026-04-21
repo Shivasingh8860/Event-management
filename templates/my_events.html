@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}My Events{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4"><i class="fas fa-user-check"></i> My Events</h1>
+    
+    {% if not student %}
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Enter Your Student ID</h5>
+                    <form method="GET" action="{{ url_for('my_events') }}">
+                        <div class="mb-3">
+                            <label for="student_id" class="form-label">
+                                <i class="fas fa-id-card"></i> Student ID
+                            </label>
+                            <input type="text" class="form-control" id="student_id" 
+                                   name="student_id" required placeholder="Enter your student ID">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i> View My Events
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Student Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4><i class="fas fa-user"></i> {{ student.name }}</h4>
+            <p class="mb-0">
+                <strong>Student ID:</strong> {{ student.student_id }} | 
+                <strong>Email:</strong> {{ student.email }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ upcoming_registrations|length }}</h3>
+                    <p class="mb-0">Upcoming Events</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ past_registrations|length }}</h3>
+                    <p class="mb-0">Past Events</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3>{{ waitlist_entries|length }}</h3>
+                    <p class="mb-0">Waitlist</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Events -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-calendar-check"></i> Upcoming Events</h4>
+        </div>
+        <div class="card-body">
+            {% if upcoming_registrations %}
+            <div class="row g-3">
+                {% for reg in upcoming_registrations %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ reg.event.title }}</h5>
+                            <p class="card-text text-muted">{{ reg.event.description[:100] }}...</p>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-calendar"></i> {{ reg.event.date.strftime('%B %d, %Y') }}</li>
+                                <li><i class="fas fa-clock"></i> {{ reg.event.date.strftime('%I:%M %p') }}</li>
+                                <li><i class="fas fa-map-marker-alt"></i> {{ reg.event.venue }}</li>
+                                <li>
+                                    <i class="fas fa-qrcode"></i> 
+                                    <a href="{{ url_for('generate_qr', token=reg.qr_code_token) }}">
+                                        Download QR Code
+                                    </a>
+                                </li>
+                            </ul>
+                            {% if reg.checked_in %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> Checked In
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Not Checked In</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted text-center mb-0">You have no upcoming events</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Waitlist -->
+    {% if waitlist_entries %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h4 class="mb-0"><i class="fas fa-clock"></i> Waitlist</h4>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% for entry in waitlist_entries %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ entry.event.title }}</h5>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-calendar"></i> {{ entry.event.date.strftime('%B %d, %Y at %I:%M %p') }}</li>
+                                <li><i class="fas fa-map-marker-alt"></i> {{ entry.event.venue }}</li>
+                                <li>
+                                    <i class="fas fa-list-ol"></i> 
+                                    <span class="badge bg-warning">Position {{ entry.position }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Past Events / Attendance History -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0"><i class="fas fa-history"></i> Attendance History</h4>
+        </div>
+        <div class="card-body">
+            {% if past_registrations %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Venue</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reg in past_registrations %}
+                        <tr>
+                            <td><strong>{{ reg.event.title }}</strong></td>
+                            <td>{{ reg.event.date.strftime('%B %d, %Y') }}</td>
+                            <td>{{ reg.event.venue }}</td>
+                            <td>
+                                {% if reg.checked_in %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Attended
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times"></i> Did Not Attend
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-3">
+                <h6>Summary:</h6>
+                <p class="mb-0">
+                    Total Events Registered: <strong>{{ past_registrations|length }}</strong> | 
+                    Attended: <strong>{{ past_registrations|selectattr('checked_in', 'equalto', True)|list|length }}</strong> | 
+                    Attendance Rate: <strong>
+                        {% if past_registrations|length > 0 %}
+                            {{ ((past_registrations|selectattr('checked_in', 'equalto', True)|list|length / past_registrations|length) * 100)|round(1) }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </strong>
+                </p>
+            </div>
+            {% else %}
+            <p class="text-muted text-center mb-0">No past events</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

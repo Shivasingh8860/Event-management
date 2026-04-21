@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Images - {{ folder.folder_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-upload"></i> Upload Images</h3>
+                </div>
+                <div class="card-body">
+                    <h4>{{ folder.folder_name }}</h4>
+                    <h5>{{ event.title }}</h5>
+                    <p class="text-muted">
+                        <i class="fas fa-calendar"></i> {{ event.date.strftime('%B %d, %Y') }} | 
+                        <i class="fas fa-map-marker-alt"></i> {{ event.venue }}
+                    </p>
+                    
+                    <hr>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="images" class="form-label">
+                                <i class="fas fa-images"></i> Select Images
+                            </label>
+                            <input type="file" class="form-control" id="images" name="images" 
+                                   multiple accept="image/*" required>
+                            <div class="form-text">You can select multiple images. Accepted formats: JPG, PNG, GIF (Max 16MB per file)</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-cloud-upload-alt"></i> Upload Images
+                            </button>
+                            <a href="{{ url_for('folder_images', event_id=event.id, folder_id=folder.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Folder
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Existing Images -->
+            {% if folder.images %}
+            <div class="card mt-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-images"></i> Uploaded Images ({{ folder.images|length }})</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for image in folder.images %}
+                        <div class="col-md-4 col-lg-3">
+                            <div class="position-relative">
+                                <img src="{{ url_for('static', filename=image.image_path) }}" 
+                                     alt="{{ folder.folder_name }}" 
+                                     class="img-fluid rounded shadow-sm"
+                                     style="height: 200px; width: 100%; object-fit: cover;">
+                                {% if image.caption %}
+                                <p class="text-muted small mt-2">{{ image.caption }}</p>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('delete_folder_image', image_id=image.id) }}" 
+                                      style="position: absolute; top: 5px; right: 5px;"
+                                      onsubmit="return confirm('Delete this image?');">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                <p class="text-muted small mb-0">
+                                    <i class="fas fa-clock"></i> {{ image.uploaded_date.strftime('%b %d, %Y') }}
+                                </p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

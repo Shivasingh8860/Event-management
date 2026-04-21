@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Registrations - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-list"></i> Event Registrations</h2>
+            <h4 class="text-muted">{{ event.title }}</h4>
+            <p>
+                <i class="fas fa-calendar"></i> {{ event.date.strftime('%B %d, %Y at %I:%M %p') }} | 
+                <i class="fas fa-map-marker-alt"></i> {{ event.venue }}
+            </p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('add_registration_manual', event_id=event.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Participant
+            </a>
+            <a href="{{ url_for('export_attendance', event_id=event.id) }}" class="btn btn-success">
+                <i class="fas fa-download"></i> Export Attendance
+            </a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card dashboard-stat-card">
+                <div class="card-body">
+                    <h6>Total Capacity</h6>
+                    <h2>{{ event.capacity }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card dashboard-stat-card">
+                <div class="card-body">
+                    <h6>Registered</h6>
+                    <h2>{{ registrations|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card dashboard-stat-card">
+                <div class="card-body">
+                    <h6>Checked In</h6>
+                    <h2>{{ registrations|selectattr('checked_in', 'equalto', True)|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card dashboard-stat-card">
+                <div class="card-body">
+                    <h6>Waitlist</h6>
+                    <h2>{{ waitlist|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registered Students -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="fas fa-user-check"></i> Registered Students</h4>
+        </div>
+        <div class="card-body">
+            {% if registrations %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Registration Date</th>
+                            <th>Check-in Status</th>
+                            <th>Check-in Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reg in registrations %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ reg.student.student_id }}</strong></td>
+                            <td>{{ reg.student.name }}</td>
+                            <td>{{ reg.student.email }}</td>
+                            <td>{{ reg.registration_date.strftime('%b %d, %Y %I:%M %p') }}</td>
+                            <td>
+                                {% if reg.checked_in %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Checked In
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times"></i> Not Checked In
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if reg.check_in_time %}
+                                    {{ reg.check_in_time.strftime('%b %d, %Y %I:%M %p') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form method="POST" action="{{ url_for('toggle_checkin', reg_id=reg.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-sm {{ 'btn-warning' if reg.checked_in else 'btn-success' }}" 
+                                            title="{{ 'Remove Check-in' if reg.checked_in else 'Manual Check-in' }}">
+                                        <i class="fas {{ 'fa-user-minus' if reg.checked_in else 'fa-user-check' }}"></i>
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('edit_registration', reg_id=reg.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="Edit Participant">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('generate_qr', token=reg.qr_code_token) }}" 
+                                   class="btn btn-sm btn-info" title="Download QR Code">
+                                    <i class="fas fa-qrcode"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('cancel_registration', reg_id=reg.id) }}" 
+                                      style="display: inline;" 
+                                      onsubmit="return confirm('Cancel this registration?');">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Cancel Registration">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center mb-0">No registrations yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Waitlist -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="fas fa-clock"></i> Waitlist</h4>
+        </div>
+        <div class="card-body">
+            {% if waitlist %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Added Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in waitlist %}
+                        <tr>
+                            <td><span class="badge bg-warning">{{ entry.position }}</span></td>
+                            <td><strong>{{ entry.student.student_id }}</strong></td>
+                            <td>{{ entry.student.name }}</td>
+                            <td>{{ entry.student.email }}</td>
+                            <td>{{ entry.added_date.strftime('%b %d, %Y %I:%M %p') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center mb-0">No students on waitlist</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

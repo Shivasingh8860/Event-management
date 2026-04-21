@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Folders - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h2><i class="fas fa-cog"></i> Manage Folders</h2>
+            <h4>{{ event.title }}</h4>
+            <p class="text-muted">
+                <i class="fas fa-calendar"></i> {{ event.date.strftime('%B %d, %Y') }} | 
+                <i class="fas fa-map-marker-alt"></i> {{ event.venue }}
+            </p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <a href="{{ url_for('create_event_folder', event_id=event.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Folder
+            </a>
+            <a href="{{ url_for('event_folders', event_id=event.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    {% if folders %}
+    <div class="row g-4">
+        {% for folder in folders %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-folder"></i> {{ folder.folder_name }}</h5>
+                    <small class="text-white-50">
+                        <i class="fas fa-clock"></i> {{ folder.created_date.strftime('%b %d, %Y') }}
+                    </small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <i class="fas fa-images"></i> {{ folder.images|length }} images
+                    </p>
+                </div>
+                <div class="card-footer d-grid gap-2">
+                    <a href="{{ url_for('upload_folder_images', event_id=event.id, folder_id=folder.id) }}" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload Images
+                    </a>
+                    <a href="{{ url_for('folder_images', event_id=event.id, folder_id=folder.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i> View Images
+                    </a>
+                    <form method="POST" action="{{ url_for('delete_event_folder', folder_id=folder.id) }}" 
+                          onsubmit="return confirm('Delete this folder and ALL images in it? This cannot be undone.');">
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-trash"></i> Delete Folder
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 
+        No folders created for this event yet. 
+        <a href="{{ url_for('create_event_folder', event_id=event.id) }}">Create the first folder</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

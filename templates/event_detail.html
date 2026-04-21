@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.title }} - Event Details{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">{{ event.title }}</h2>
+                </div>
+                <div class="card-body">
+                    <h5>Description</h5>
+                    <p class="text-justify">{{ event.description }}</p>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-info-circle text-primary"></i> Event Information</h5>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <strong><i class="fas fa-calendar"></i> Date:</strong><br>
+                                    {{ event.date.strftime('%B %d, %Y') }}
+                                </li>
+                                <li class="mb-2">
+                                    <strong><i class="fas fa-clock"></i> Time:</strong><br>
+                                    {{ event.date.strftime('%I:%M %p') }}
+                                </li>
+                                <li class="mb-2">
+                                    <strong><i class="fas fa-map-marker-alt"></i> Venue:</strong><br>
+                                    {{ event.venue }}
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-users text-primary"></i> Registration Status</h5>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <strong>Total Capacity:</strong> {{ event.capacity }}
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Registered:</strong> {{ event.get_registered_count() }}
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Available Spots:</strong> 
+                                    {% if event.is_full() %}
+                                        <span class="badge bg-danger">Event Full</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ event.get_available_spots() }}</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('register', event_id=event.id) }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user-plus"></i> 
+                            {% if event.is_full() %}
+                                Join Waitlist
+                            {% else %}
+                                Register Now
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('events') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Events
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Quick Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i> 
+                            Register early to secure your spot
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i> 
+                            You'll receive a QR code via email
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i> 
+                            Present QR code at the event for check-in
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i> 
+                            Waitlist members are notified if spots open
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Important</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">Please arrive 15 minutes early for check-in. Late arrivals may lose their spot to waitlist attendees.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

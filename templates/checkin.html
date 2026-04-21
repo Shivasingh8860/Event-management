@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}QR Code Check-in{% endblock %}
+
+{% block extra_css %}
+<style>
+    #reader {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .result-box {
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 8px;
+    }
+    .success-box {
+        background-color: #d4edda;
+        border: 2px solid #28a745;
+        color: #155724;
+    }
+    .error-box {
+        background-color: #f8d7da;
+        border: 2px solid #dc3545;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="fas fa-qrcode"></i> QR Code Check-in</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        Scan student QR codes to mark attendance. You can also manually enter the QR code token.
+                    </div>
+
+                    <!-- Manual Token Entry -->
+                    <div class="mb-4">
+                        <h5>Manual Token Entry</h5>
+                        <form id="manualCheckInForm">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="manualToken" 
+                                       placeholder="Enter QR code token or scan QR code" required>
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-check"></i> Check In
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- QR Scanner -->
+                    <div class="mb-4">
+                        <h5>QR Code Scanner</h5>
+                        <div id="reader" style="width: 100%; max-width: 600px; margin: 0 auto;"></div>
+                        <div id="scannerStatus" class="mt-2"></div>
+                    </div>
+
+                    <!-- Result Display -->
+                    <div id="resultContainer"></div>
+
+                    <hr>
+
+                    <div class="text-center">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- html5-qrcode library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let html5QrCode = null;
+let isScanning = false;
+
+// Function to process check-in
+async function processCheckIn(token) {
+    const resultContainer = document.getElementById('resultContainer');
+    
+    try {
+        const response = await fetch('{{ url_for("checkin") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'token=' + encodeURIComponent(token)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultContainer.innerHTML = `
+                <div class="result-box success-box">
+                    <h4><i class="fas fa-check-circle"></i> Check-in Successful!</h4>
+                    <p><strong>Student:</strong> ${data.student}</p>
+                    <p><strong>Event:</strong> ${data.event}</p>
+                    <p class="mb-0"><i class="fas fa-clock"></i> Checked in at ${new Date().toLocaleString()}</p>
+                </div>
+            `;
+            
+            // Play success sound (optional)
+            const successAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvfaizsIHGG57OihUBELTKXh8bllHAU2jdXzzn0vBSh+zPLZjT0JGWe56+mjUhIMTqvn8LdnHgU7k9n0yoIyBSV6yPDTkEILF2O46Oqeel0UI0+o5O+1aB4EL4nU8tGEOQcde8rx1pNFChd0wOrrrV0VFlGt5fCxZyAFNIzX88p/MwUnesvz15ZJDR0');
+            successAudio.play().catch(() => {});
+        } else {
+            let errorMsg = data.message;
+            let extraInfo = '';
+            
+            if (data.student) {
+                extraInfo = `
+                    <p><strong>Student:</strong> ${data.student}</p>
+                    <p><strong>Event:</strong> ${data.event}</p>
+                    <p><strong>Previously checked in:</strong> ${data.check_in_time}</p>
+                `;
+            }
+            
+            resultContainer.innerHTML = `
+                <div class="result-box error-box">
+                    <h4><i class="fas fa-times-circle"></i> ${errorMsg}</h4>
+                    ${extraInfo}
+                </div>
+            `;
+        }
+        
+        // Auto-hide result after 5 seconds
+        setTimeout(() => {
+            resultContainer.innerHTML = '';
+        }, 5000);
+        
+    } catch (error) {
+        resultContainer.innerHTML = `
+            <div class="result-box error-box">
+                <h4><i class="fas fa-exclamation-triangle"></i> Error</h4>
+                <p>Failed to process check-in. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+// Manual form submission
+document.getElementById('manualCheckInForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const token = document.getElementById('manualToken').value;
+    await processCheckIn(token);
+    document.getElementById('manualToken').value = '';
+});
+
+// QR Code Scanner
+function onScanSuccess(decodedText, decodedResult) {
+    // Process the scanned QR code
+    processCheckIn(decodedText);
+    
+    // Stop scanning temporarily
+    if (html5QrCode && isScanning) {
+        html5QrCode.pause();
+        setTimeout(() => {
+            if (html5QrCode && isScanning) {
+                html5QrCode.resume();
+            }
+        }, 2000);
+    }
+}
+
+function onScanError(errorMessage) {
+    // Handle scan error silently (camera is continuously scanning)
+}
+
+// Initialize QR Code Scanner
+function startScanner() {
+    const scannerStatus = document.getElementById('scannerStatus');
+    
+    html5QrCode = new Html5Qrcode("reader");
+    
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
+    
+    html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess,
+        onScanError
+    ).then(() => {
+        isScanning = true;
+        scannerStatus.innerHTML = '<div class="alert alert-success"><i class="fas fa-camera"></i> Camera active - Ready to scan QR codes</div>';
+    }).catch(err => {
+        // Try with user-facing camera if environment camera fails
+        html5QrCode.start(
+            { facingMode: "user" },
+            config,
+            onScanSuccess,
+            onScanError
+        ).then(() => {
+            isScanning = true;
+            scannerStatus.innerHTML = '<div class="alert alert-success"><i class="fas fa-camera"></i> Camera active - Ready to scan QR codes</div>';
+        }).catch(err => {
+            scannerStatus.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Unable to access camera. Please use manual token entry or check camera permissions.
+                </div>
+            `;
+        });
+    });
+}
+
+// Start scanner when page loads
+window.addEventListener('DOMContentLoaded', () => {
+    startScanner();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (html5QrCode && isScanning) {
+        html5QrCode.stop().catch(() => {});
+    }
+});
+</script>
+{% endblock %}
